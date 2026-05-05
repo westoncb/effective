@@ -15,31 +15,13 @@ import {
   type ClipFlag,
   type TextEdit,
 } from "./editor/textTransforms";
+import { defaultPreset, presets, type PresetProgram } from "./domain/presets";
 import { buildProgram, type ProgramResult } from "./domain/program";
 import { instruments } from "./domain/registry";
 import type { Clip, Diagnostic, ParamValue, Timeline } from "./domain/types";
 import "./styles.css";
 
-const INITIAL_SOURCE = `dur 720ms
-master gain=.76 drive=.18 reverb=.12 cutoff=16000
-
-curve drop.fast = exp out
-curve bloom = ease out
-curve tail.soft = ease inout
-
-sub:
-  [SubDrop#body @0ms +420ms amp=.45 freq=145->54 curve=drop.fast drive=.55 pan=.50]
-
-hit:
-  [SoftClick#click @0ms +55ms amp=.32 bright=.55 body=.50 pan=.50]
-  [MetalTick#tick @18ms +90ms amp=.10 freq=1150 hard=.45 pan=.52]
-
-tone:
-  [GlassPing#shine @30ms +360ms amp=.18 freq=620 bright=.25 pan=.56]
-
-air:
-  [AirTail#air @45ms +460ms amp=.10 bright=.35 pan=.48]
-`;
+const INITIAL_SOURCE = defaultPreset.source;
 
 type AudioState =
   | { status: "uninitialized" }
@@ -63,6 +45,7 @@ export default function App() {
   );
   const [audio, setAudio] = useState<AudioState>({ status: "uninitialized" });
   const [selection, setSelection] = useState<Selection>({ sourceCursor: 0 });
+  const [activePresetId, setActivePresetId] = useState<string>(defaultPreset.id);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -135,10 +118,24 @@ export default function App() {
 
   function applyTextEdit(edit: TextEdit) {
     setSource(edit.source);
+    setActivePresetId("custom");
     window.requestAnimationFrame(() => {
       textareaRef.current?.focus();
       textareaRef.current?.setSelectionRange(edit.selectionStart, edit.selectionEnd);
       updateSelection(edit.selectionStart);
+    });
+  }
+
+  function loadPreset(preset: PresetProgram) {
+    const next = buildProgram(preset.source);
+    setSource(preset.source);
+    setProgram(next);
+    if (next.timeline) setLastValidTimeline(next.timeline);
+    setSelection({ sourceCursor: 0 });
+    setActivePresetId(preset.id);
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(0, 0);
     });
   }
 
@@ -246,13 +243,18 @@ export default function App() {
         </div>
       </header>
 
+      <PresetGallery activePresetId={activePresetId} onLoadPreset={loadPreset} />
+
       <section className="workspace">
         <section className="editor-panel" aria-label="Program editor">
           <textarea
             ref={textareaRef}
             value={source}
             spellCheck={false}
-            onChange={(event) => setSource(event.target.value)}
+            onChange={(event) => {
+              setSource(event.target.value);
+              setActivePresetId("custom");
+            }}
             onKeyDown={onEditorKeyDown}
             onSelect={(event) => updateSelection(event.currentTarget.selectionStart)}
           />
@@ -292,6 +294,29 @@ export default function App() {
 
 function StatusPill({ label, tone }: { label: string; tone: "good" | "bad" | "neutral" }) {
   return <span className={`status-pill ${tone}`}>{label}</span>;
+}
+
+function PresetGallery({
+  activePresetId,
+  onLoadPreset,
+}: {
+  activePresetId: string;
+  onLoadPreset: (preset: PresetProgram) => void;
+}) {
+  return (
+    <section className="preset-gallery" aria-label="Preset gallery">
+      {presets.map((preset) => (
+        <button
+          className={activePresetId === preset.id ? "active" : ""}
+          key={preset.id}
+          onClick={() => onLoadPreset(preset)}
+          type="button"
+        >
+          {preset.name}
+        </button>
+      ))}
+    </section>
+  );
 }
 
 function Diagnostics({ diagnostics, audio }: { diagnostics: Diagnostic[]; audio: AudioState }) {

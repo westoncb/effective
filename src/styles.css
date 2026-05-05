@@ -47,7 +47,7 @@ button.primary {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-rows: 56px 1fr 150px;
+  grid-template-rows: 56px 48px 1fr 150px;
 }
 
 .topbar {
@@ -98,6 +98,35 @@ button.primary {
 
 .topbar button:disabled {
   opacity: 0.45;
+}
+
+.preset-gallery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 7px 18px;
+  border-bottom: 1px solid var(--line);
+  background: #121516;
+}
+
+.preset-gallery button {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.preset-gallery button.active {
+  border-color: #4f8567;
+  background: #1f3a2c;
+  color: var(--accent-strong);
 }
 
 .status-pill {
