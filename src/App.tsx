@@ -6,7 +6,15 @@ import {
   stopPreview,
   type PreviewCsound,
 } from "./audio/csound";
-import { duplicateClipLine, nudgeNumberAt, toggleCommentForLine, type TextEdit } from "./editor/textTransforms";
+import {
+  duplicateClipLine,
+  nudgeNumberAt,
+  setClipFlagForRanges,
+  toggleClipFlagAt,
+  toggleCommentForLine,
+  type ClipFlag,
+  type TextEdit,
+} from "./editor/textTransforms";
 import { buildProgram, type ProgramResult } from "./domain/program";
 import { instruments } from "./domain/registry";
 import type { Clip, Diagnostic, ParamValue, Timeline } from "./domain/types";
@@ -151,6 +159,29 @@ export default function App() {
     });
   }
 
+  function toggleSelectedClipFlag(flag: ClipFlag) {
+    const cursor = selectedClip?.sourceRange?.start ?? selection.sourceCursor;
+    const edit = toggleClipFlagAt(source, cursor, flag);
+    if (edit) applyTextEdit(edit);
+  }
+
+  function toggleLaneFlag(laneId: string, flag: ClipFlag) {
+    const lane = activeTimeline?.lanes.find((item) => item.id === laneId);
+    if (!lane) return;
+
+    const clipsWithSource = lane.clips.filter((clip) => clip.sourceRange);
+    const shouldEnable = flag === "mute"
+      ? clipsWithSource.some((clip) => !clip.muted)
+      : clipsWithSource.some((clip) => !clip.solo);
+    const edit = setClipFlagForRanges(
+      source,
+      clipsWithSource.map((clip) => clip.sourceRange!),
+      flag,
+      shouldEnable,
+    );
+    if (edit) applyTextEdit(edit);
+  }
+
   function onEditorKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     const target = event.currentTarget;
     const cursor = target.selectionStart;
@@ -178,7 +209,12 @@ export default function App() {
 
     if ((event.metaKey || event.ctrlKey) && event.key === "/") {
       event.preventDefault();
-      applyTextEdit(toggleCommentForLine(source, cursor));
+      const edit = toggleClipFlagAt(source, selectedClip?.sourceRange?.start ?? cursor, "mute");
+      if (edit) {
+        applyTextEdit(edit);
+      } else {
+        applyTextEdit(toggleCommentForLine(source, cursor));
+      }
       return;
     }
 
@@ -230,6 +266,7 @@ export default function App() {
               selectedClipId={selection.clipId}
               onSelectClip={selectClip}
               onAuditionClip={(clip) => void previewSingleClip(clip)}
+              onToggleLaneFlag={toggleLaneFlag}
             />
           ) : (
             <div className="empty-state">No valid timeline</div>
@@ -241,6 +278,7 @@ export default function App() {
             clip={selectedClip}
             timeline={activeTimeline}
             onPreviewClip={(clip) => void previewSingleClip(clip)}
+            onToggleClipFlag={toggleSelectedClipFlag}
           />
         </aside>
       </section>
@@ -277,11 +315,13 @@ function TimelineView({
   selectedClipId,
   onSelectClip,
   onAuditionClip,
+  onToggleLaneFlag,
 }: {
   timeline: Timeline;
   selectedClipId?: string;
   onSelectClip: (clip: Clip) => void;
   onAuditionClip: (clip: Clip) => void;
+  onToggleLaneFlag: (laneId: string, flag: ClipFlag) => void;
 }) {
   const scaleMs = Math.max(timeline.durationMs, timeline.effectiveDurationMs - timeline.tailMs);
   const ticks = makeTicks(scaleMs);
@@ -294,36 +334,67 @@ function TimelineView({
         ))}
       </div>
       <div className="lanes">
-        {timeline.lanes.map((lane) => (
-          <div className="lane" key={lane.id}>
-            <div className="lane-name">{lane.id}</div>
-            <div className="lane-track">
-              {ticks.map((tick) => (
-                <span className="grid-line" key={tick} style={{ left: `${(tick / scaleMs) * 100}%` }} />
-              ))}
-              {lane.clips.map((clip) => {
-                const left = (clip.startMs / scaleMs) * 100;
-                const width = Math.max((clip.durationMs / scaleMs) * 100, 4);
-                const spec = instruments[clip.instrument as keyof typeof instruments];
-                return (
+        {timeline.lanes.map((lane) => {
+          const isMuted = lane.clips.length > 0 && lane.clips.every((clip) => clip.muted);
+          const isSolo = lane.clips.some((clip) => clip.solo);
+
+          return (
+            <div className="lane" key={lane.id}>
+              <div className="lane-name">
+                <span>{lane.id}</span>
+                <div className="lane-actions">
                   <button
-                    className={`clip-block family-${spec?.family ?? "system"} ${selectedClipId === clip.stableId ? "selected" : ""}`}
-                    key={clip.stableId}
-                    style={{ left: `${left}%`, width: `${width}%` }}
-                    onClick={() => onSelectClip(clip)}
-                    onDoubleClick={() => {
-                      onSelectClip(clip);
-                      onAuditionClip(clip);
-                    }}
+                    className={isMuted ? "active" : ""}
+                    onClick={() => onToggleLaneFlag(lane.id, "mute")}
+                    type="button"
                   >
-                    <span>{clip.instrument}{clip.id ? `#${clip.id}` : ""}</span>
-                    <small>{clip.startMs}ms +{clip.durationMs}ms</small>
+                    M
                   </button>
-                );
-              })}
+                  <button
+                    className={isSolo ? "active" : ""}
+                    onClick={() => onToggleLaneFlag(lane.id, "solo")}
+                    type="button"
+                  >
+                    S
+                  </button>
+                </div>
+              </div>
+              <div className="lane-track">
+                {ticks.map((tick) => (
+                  <span className="grid-line" key={tick} style={{ left: `${(tick / scaleMs) * 100}%` }} />
+                ))}
+                {lane.clips.map((clip) => {
+                  const left = (clip.startMs / scaleMs) * 100;
+                  const width = Math.max((clip.durationMs / scaleMs) * 100, 4);
+                  const spec = instruments[clip.instrument as keyof typeof instruments];
+                  return (
+                    <button
+                      className={[
+                        "clip-block",
+                        `family-${spec?.family ?? "system"}`,
+                        selectedClipId === clip.stableId ? "selected" : "",
+                        clip.muted ? "muted" : "",
+                        clip.solo ? "solo" : "",
+                      ].join(" ")}
+                      key={clip.stableId}
+                      style={{ left: `${left}%`, width: `${width}%` }}
+                      onClick={() => onSelectClip(clip)}
+                      onDoubleClick={() => {
+                        onSelectClip(clip);
+                        onAuditionClip(clip);
+                      }}
+                    >
+                      <span>{clip.instrument}{clip.id ? `#${clip.id}` : ""}</span>
+                      <small>
+                        {clip.solo ? "S " : ""}{clip.muted ? "M " : ""}{clip.startMs}ms +{clip.durationMs}ms
+                      </small>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -333,10 +404,12 @@ function Inspector({
   clip,
   timeline,
   onPreviewClip,
+  onToggleClipFlag,
 }: {
   clip?: Clip;
   timeline?: Timeline;
   onPreviewClip: (clip: Clip) => void;
+  onToggleClipFlag: (flag: ClipFlag) => void;
 }) {
   if (!clip || !timeline) {
     return (
@@ -359,6 +432,12 @@ function Inspector({
       </div>
       <div className="inspector-actions">
         <button className="primary" onClick={() => onPreviewClip(clip)}>Preview Clip</button>
+        <button className={clip.muted ? "active" : ""} onClick={() => onToggleClipFlag("mute")}>
+          {clip.muted ? "Unmute" : "Mute"}
+        </button>
+        <button className={clip.solo ? "active" : ""} onClick={() => onToggleClipFlag("solo")}>
+          {clip.solo ? "Unsolo" : "Solo"}
+        </button>
       </div>
       <div className="param-list">
         {spec.params.map((param) => (
@@ -403,9 +482,10 @@ function MiniCurve({ curve }: { curve: string }) {
 }
 
 function WaveformPreview({ timeline }: { timeline: Timeline }) {
+  const clips = audibleClips(timeline);
   const bars = Array.from({ length: 96 }, (_, index) => {
     const t = (index / 95) * timeline.effectiveDurationMs;
-    const amp = timeline.clips.reduce((sum, clip) => {
+    const amp = clips.reduce((sum, clip) => {
       const value = clip.params.amp;
       const clipAmp = value?.kind === "scalar" ? value.value : 0.12;
       const inClip = t >= clip.startMs && t <= clip.startMs + clip.durationMs;
@@ -430,6 +510,11 @@ function WaveformPreview({ timeline }: { timeline: Timeline }) {
       </div>
     </div>
   );
+}
+
+function audibleClips(timeline: Timeline) {
+  const hasSolo = timeline.clips.some((clip) => clip.solo);
+  return timeline.clips.filter((clip) => !clip.muted && (!hasSolo || clip.solo));
 }
 
 function makeTicks(durationMs: number) {

@@ -41,6 +41,7 @@ const MASTER_RANGES: Record<keyof GlobalControls, [number, number]> = {
 };
 
 const BUILTIN_CURVES = new Set(["linear", "exp", "ease.in", "ease.out", "ease.inout"]);
+const CLIP_META_ASSIGNMENTS = new Set(["mute", "muted", "solo"]);
 
 export function normalizeProgram(ast: ProgramAst): Timeline {
   const diagnostics: Diagnostic[] = [];
@@ -125,7 +126,12 @@ export function normalizeProgram(ast: ProgramAst): Timeline {
       }
 
       const instrument = instruments[clipAst.instrument];
-      const params = normalizeParams(instrument.params, clipAst.assignments, curves, diagnostics);
+      const muted = readClipFlag(clipAst.assignments, "mute", diagnostics);
+      const solo = readClipFlag(clipAst.assignments, "solo", diagnostics);
+      const paramAssignments = clipAst.assignments.filter(
+        (assignment) => !CLIP_META_ASSIGNMENTS.has(assignment.name),
+      );
+      const params = normalizeParams(instrument.params, paramAssignments, curves, diagnostics);
       const stableId = clipAst.id ?? `${lane.id}-${clipAst.instrument}-${clipAst.line}-${index}`;
       const clip: Clip = {
         id: clipAst.id,
@@ -135,6 +141,8 @@ export function normalizeProgram(ast: ProgramAst): Timeline {
         startMs: clipAst.start.ms,
         durationMs: clipAst.duration.ms,
         params,
+        muted,
+        solo,
         line: clipAst.line,
         sourceRange: clipAst.range,
       };
@@ -320,6 +328,41 @@ function normalizeCurves(curves: ProgramAst["curves"], diagnostics: Diagnostic[]
   });
 
   return normalized;
+}
+
+function readClipFlag(
+  assignments: AssignmentAst[],
+  flag: "mute" | "solo",
+  diagnostics: Diagnostic[],
+) {
+  const names = flag === "mute" ? new Set(["mute", "muted"]) : new Set(["solo"]);
+  let enabled = false;
+
+  assignments.forEach((assignment) => {
+    if (!names.has(assignment.name)) return;
+
+    const value = parseBooleanFlag(assignment.value);
+    if (value === undefined) {
+      diagnostics.push({
+        message: `${assignment.name} must be 1, 0, true, or false.`,
+        line: assignment.line,
+        column: assignment.column,
+        severity: "error",
+        range: assignment.range,
+      });
+      return;
+    }
+
+    enabled = value;
+  });
+
+  return enabled;
+}
+
+function parseBooleanFlag(value: string) {
+  if (value === "1" || value === "true" || value === "yes" || value === "on") return true;
+  if (value === "0" || value === "false" || value === "no" || value === "off") return false;
+  return undefined;
 }
 
 function normalizeParams(
