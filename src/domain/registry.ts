@@ -13,8 +13,10 @@ const scalar = (
   max: number,
   unit: ParamSpec["unit"] = "none",
   aliases: string[] = [],
+  label?: string,
 ): ParamSpec => ({
   name,
+  label,
   kind: "scalar",
   default: defaultValue,
   min,
@@ -32,8 +34,10 @@ const ramp = (
   max: number,
   unit: ParamSpec["unit"] = "none",
   aliases: string[] = [],
+  label?: string,
 ): ParamSpec => ({
   name,
+  label,
   kind: "ramp",
   default: { from, to, curve },
   min,
@@ -48,8 +52,8 @@ export const instruments = {
     family: "bass",
     params: [
       scalar("amp", 0.4, 0, 1, "amp"),
-      ramp("freq", 140, 55, "exp", 20, 400, "hz"),
-      scalar("drive", 0.4, 0, 1),
+      ramp("freq", 140, 55, "exp", 20, 400, "hz", ["pitch", "drop", "tone"], "drop"),
+      scalar("drive", 0.4, 0, 1, "none", ["weight"], "weight"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip, context) => [
@@ -66,9 +70,9 @@ export const instruments = {
     family: "bass",
     params: [
       scalar("amp", 0.34, 0, 1, "amp"),
-      scalar("freq", 72, 20, 240, "hz"),
+      scalar("freq", 72, 20, 240, "hz", ["pitch", "weight", "tone"], "weight"),
       scalar("punch", 0.55, 0, 1),
-      scalar("drive", 0.35, 0, 1),
+      scalar("drive", 0.35, 0, 1, "none", ["body"], "body"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -84,7 +88,7 @@ export const instruments = {
     family: "click",
     params: [
       scalar("amp", 0.28, 0, 1, "amp"),
-      scalar("bright", 0.55, 0, 1, "none", ["brightness"]),
+      scalar("bright", 0.55, 0, 1, "none", ["brightness", "snap"], "snap"),
       scalar("body", 0.4, 0, 1),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
@@ -100,8 +104,8 @@ export const instruments = {
     family: "noise",
     params: [
       scalar("amp", 0.16, 0, 1, "amp"),
-      scalar("hp", 900, 20, 18000, "hz", ["hpHz"]),
-      scalar("lp", 9000, 100, 24000, "hz", ["lpHz"]),
+      scalar("hp", 900, 20, 18000, "hz", ["hpHz", "thin", "cut"], "thin"),
+      scalar("lp", 9000, 100, 24000, "hz", ["lpHz", "air", "bright"], "air"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -116,7 +120,7 @@ export const instruments = {
     family: "motion",
     params: [
       scalar("amp", 0.18, 0, 1, "amp"),
-      ramp("cutoff", 900, 9000, "exp", 40, 22000, "hz"),
+      ramp("cutoff", 900, 9000, "exp", 40, 22000, "hz", ["sweep", "motion", "open"], "motion"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip, context) => [
@@ -132,8 +136,8 @@ export const instruments = {
     family: "tone",
     params: [
       scalar("amp", 0.2, 0, 1, "amp"),
-      scalar("freq", 620, 80, 6000, "hz"),
-      scalar("bright", 0.25, 0, 1, "none", ["brightness"]),
+      scalar("freq", 620, 80, 6000, "hz", ["pitch", "tone"], "tone"),
+      scalar("bright", 0.25, 0, 1, "none", ["brightness", "shine"], "shine"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -148,8 +152,8 @@ export const instruments = {
     family: "tone",
     params: [
       scalar("amp", 0.22, 0, 1, "amp"),
-      scalar("freq", 480, 80, 6000, "hz"),
-      scalar("detune", 0.24, 0, 1),
+      scalar("freq", 480, 80, 6000, "hz", ["pitch", "tone"], "tone"),
+      scalar("detune", 0.24, 0, 1, "none", ["spread", "warmth"], "warmth"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -164,8 +168,8 @@ export const instruments = {
     family: "system",
     params: [
       scalar("amp", 0.26, 0, 1, "amp"),
-      scalar("freq", 190, 40, 2000, "hz"),
-      scalar("rough", 0.7, 0, 1, "none", ["roughness"]),
+      scalar("freq", 190, 40, 2000, "hz", ["pitch", "tone"], "tone"),
+      scalar("rough", 0.7, 0, 1, "none", ["roughness", "grain"], "rough"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -180,9 +184,9 @@ export const instruments = {
     family: "system",
     params: [
       scalar("amp", 0.18, 0, 1, "amp"),
-      scalar("freq", 320, 60, 2000, "hz"),
-      scalar("rate", 5.5, 0.2, 30, "hz"),
-      scalar("depth", 0.45, 0, 1),
+      scalar("freq", 320, 60, 2000, "hz", ["pitch", "tone"], "tone"),
+      scalar("rate", 5.5, 0.2, 30, "hz", ["speed"], "speed"),
+      scalar("depth", 0.45, 0, 1, "none", ["motion"], "motion"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -198,7 +202,7 @@ export const instruments = {
     family: "noise",
     params: [
       scalar("amp", 0.1, 0, 1, "amp"),
-      scalar("bright", 0.35, 0, 1, "none", ["brightness"]),
+      scalar("bright", 0.35, 0, 1, "none", ["brightness", "air"], "air"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -212,8 +216,8 @@ export const instruments = {
     family: "motion",
     params: [
       scalar("amp", 0.16, 0, 1, "amp"),
-      scalar("freq", 480, 60, 4000, "hz"),
-      scalar("sweep", 0.5, 0, 1),
+      scalar("freq", 480, 60, 4000, "hz", ["pitch", "tone"], "tone"),
+      scalar("sweep", 0.5, 0, 1, "none", ["motion", "lift"], "motion"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [
@@ -228,8 +232,8 @@ export const instruments = {
     family: "click",
     params: [
       scalar("amp", 0.12, 0, 1, "amp"),
-      scalar("freq", 1150, 120, 9000, "hz"),
-      scalar("hard", 0.45, 0, 1, "none", ["hardness"]),
+      scalar("freq", 1150, 120, 9000, "hz", ["pitch", "tone"], "tone"),
+      scalar("hard", 0.45, 0, 1, "none", ["hardness", "snap"], "snap"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
     compilePfields: (clip) => [

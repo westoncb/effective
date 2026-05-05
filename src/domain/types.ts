@@ -76,6 +76,7 @@ export type ParamUnit = "amp" | "hz" | "ratio" | "pan" | "ms" | "none";
 
 export type ParamSpec = {
   name: string;
+  label?: string;
   kind: "scalar" | "ramp";
   default: number | { from: number; to: number; curve: CurveRef };
   min?: number;

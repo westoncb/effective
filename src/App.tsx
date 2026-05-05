@@ -18,7 +18,7 @@ import {
 import { defaultPreset, presets, type PresetProgram } from "./domain/presets";
 import { buildProgram, type ProgramResult } from "./domain/program";
 import { instruments } from "./domain/registry";
-import type { Clip, Diagnostic, ParamValue, Timeline } from "./domain/types";
+import type { Clip, Diagnostic, ParamSpec, ParamValue, Timeline } from "./domain/types";
 import "./styles.css";
 
 const INITIAL_SOURCE = defaultPreset.source;
@@ -466,7 +466,7 @@ function Inspector({
       </div>
       <div className="param-list">
         {spec.params.map((param) => (
-          <ParamRow key={param.name} name={param.name} unit={param.unit} value={clip.params[param.name]} />
+          <ParamRow key={param.name} param={param} value={clip.params[param.name]} />
         ))}
       </div>
       <pre className="score-preview">{timeline.score}</pre>
@@ -474,7 +474,7 @@ function Inspector({
   );
 }
 
-function ParamRow({ name, unit, value }: { name: string; unit?: string; value: ParamValue }) {
+function ParamRow({ param, value }: { param: ParamSpec; value: ParamValue }) {
   const label =
     value.kind === "ramp"
       ? `${formatParam(value.from)} -> ${formatParam(value.to)}  ${value.curve}`
@@ -482,9 +482,9 @@ function ParamRow({ name, unit, value }: { name: string; unit?: string; value: P
 
   return (
     <div className="param-row">
-      <span>{name}</span>
+      <span>{param.label ?? param.name}</span>
       <strong>{label}</strong>
-      <small>{unit && unit !== "none" ? unit : ""}</small>
+      <small>{param.unit && param.unit !== "none" ? param.unit : ""}</small>
       {value.kind === "ramp" ? <MiniCurve curve={value.curve} /> : null}
     </div>
   );

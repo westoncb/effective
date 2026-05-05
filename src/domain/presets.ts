@@ -15,14 +15,14 @@ curve shine = ease out
 curve air = ease inout
 
 click:
-  [SoftClick#tap @0ms +52ms amp=.22 bright=.42 body=.58 pan=.49]
+  [SoftClick#tap @0ms +52ms amp=.22 snap=.42 body=.58 pan=.49]
 
 tone:
-  [GlassPing#shine @26ms +330ms amp=.16 freq=640 bright=.22 pan=.53]
-  [SoftChime#warm @58ms +410ms amp=.10 freq=420 detune=.18 pan=.47]
+  [GlassPing#shine @26ms +330ms amp=.16 tone=640 shine=.22 pan=.53]
+  [SoftChime#warm @58ms +410ms amp=.10 tone=420 warmth=.18 pan=.47]
 
 air:
-  [AirTail#tail @48ms +390ms amp=.07 bright=.28 pan=.50]
+  [AirTail#tail @48ms +390ms amp=.07 air=.28 pan=.50]
 `,
   },
   {
@@ -32,14 +32,14 @@ air:
 master gain=.78 drive=.16 reverb=.07 cutoff=17000
 
 body:
-  [BassThump#weight @0ms +120ms amp=.11 freq=86 punch=.62 drive=.25 pan=.49]
+  [BassThump#weight @0ms +120ms amp=.11 tone=86 punch=.62 body=.25 pan=.49]
 
 click:
-  [SoftClick#front @0ms +45ms amp=.30 bright=.64 body=.45 pan=.50]
-  [MetalTick#edge @14ms +65ms amp=.055 freq=1900 hard=.38 pan=.52]
+  [SoftClick#front @0ms +45ms amp=.30 snap=.64 body=.45 pan=.50]
+  [MetalTick#edge @14ms +65ms amp=.055 tone=1900 snap=.38 pan=.52]
 
 air:
-  [AirTail#short @18ms +210ms amp=.035 bright=.48 pan=.50]
+  [AirTail#short @18ms +210ms amp=.035 air=.48 pan=.50]
 `,
   },
   {
@@ -49,14 +49,14 @@ air:
 master gain=.72 drive=.10 reverb=.10 cutoff=16000
 
 click:
-  [SoftClick#down @0ms +42ms amp=.23 bright=.48 body=.55 pan=.48]
-  [MetalTick#lift @38ms +54ms amp=.06 freq=1450 hard=.28 pan=.53]
+  [SoftClick#down @0ms +42ms amp=.23 snap=.48 body=.55 pan=.48]
+  [MetalTick#lift @38ms +54ms amp=.06 tone=1450 snap=.28 pan=.53]
 
 tone:
-  [GlassPing#state @48ms +230ms amp=.09 freq=520 bright=.18 pan=.51]
+  [GlassPing#state @48ms +230ms amp=.09 tone=520 shine=.18 pan=.51]
 
 air:
-  [AirTail#space @44ms +260ms amp=.04 bright=.30 pan=.50]
+  [AirTail#space @44ms +260ms amp=.04 air=.30 pan=.50]
 `,
   },
   {
@@ -69,14 +69,14 @@ curve open = ease out
 curve lift = exp
 
 motion:
-  [Whoosh#open @0ms +360ms amp=.09 cutoff=900->7600 curve=open pan=.48]
+  [Whoosh#open @0ms +360ms amp=.09 motion=900->7600 curve=open pan=.48]
 
 tone:
-  [SoftChime#base @70ms +520ms amp=.17 freq=480 detune=.28 pan=.46]
-  [GlassPing#spark @118ms +430ms amp=.13 freq=760 bright=.34 pan=.56]
+  [SoftChime#base @70ms +520ms amp=.17 tone=480 warmth=.28 pan=.46]
+  [GlassPing#spark @118ms +430ms amp=.13 tone=760 shine=.34 pan=.56]
 
 air:
-  [AirTail#halo @145ms +560ms amp=.08 bright=.42 pan=.50]
+  [AirTail#halo @145ms +560ms amp=.08 air=.42 pan=.50]
 `,
   },
   {
@@ -86,14 +86,14 @@ air:
 master gain=.74 drive=.22 reverb=.08 cutoff=12000
 
 body:
-  [BassThump#thud @0ms +150ms amp=.16 freq=70 punch=.74 drive=.44 pan=.50]
+  [BassThump#thud @0ms +150ms amp=.16 tone=70 punch=.74 body=.44 pan=.50]
 
 noise:
-  [ErrorBuzz#rough @12ms +250ms amp=.19 freq=185 rough=.68 pan=.49]
-  [MetalTick#edge @32ms +85ms amp=.045 freq=920 hard=.70 pan=.54]
+  [ErrorBuzz#rough @12ms +250ms amp=.19 tone=185 grain=.68 pan=.49]
+  [MetalTick#edge @32ms +85ms amp=.045 tone=920 snap=.70 pan=.54]
 
 air:
-  [NoiseBurst#grain @44ms +170ms amp=.055 hp=1400 lp=7200 pan=.50]
+  [NoiseBurst#grain @44ms +170ms amp=.055 thin=1400 air=7200 pan=.50]
 `,
   },
   {
@@ -103,12 +103,12 @@ air:
 master gain=.62 drive=.10 reverb=.18 cutoff=14500
 
 pulse:
-  [ComputePulse#one @0ms +420ms amp=.13 freq=300 rate=5.2 depth=.42 pan=.46]
-  [ComputePulse#two @390ms +430ms amp=.12 freq=330 rate=5.8 depth=.48 pan=.54]
-  [ComputePulse#three @790ms +480ms amp=.115 freq=315 rate=6.4 depth=.52 pan=.50]
+  [ComputePulse#one @0ms +420ms amp=.13 tone=300 speed=5.2 motion=.42 pan=.46]
+  [ComputePulse#two @390ms +430ms amp=.12 tone=330 speed=5.8 motion=.48 pan=.54]
+  [ComputePulse#three @790ms +480ms amp=.115 tone=315 speed=6.4 motion=.52 pan=.50]
 
 texture:
-  [AirTail#bed @0ms +1280ms amp=.035 bright=.22 pan=.50]
+  [AirTail#bed @0ms +1280ms amp=.035 air=.22 pan=.50]
 `,
   },
   {
@@ -121,14 +121,14 @@ curve rise = ease out
 curve sweep = exp
 
 motion:
-  [ReverseSwell#lift @0ms +430ms amp=.12 freq=380 sweep=.58 pan=.47]
-  [Whoosh#pass @40ms +460ms amp=.13 cutoff=650->9300 curve=rise pan=.53]
+  [ReverseSwell#lift @0ms +430ms amp=.12 tone=380 motion=.58 pan=.47]
+  [Whoosh#pass @40ms +460ms amp=.13 motion=650->9300 curve=rise pan=.53]
 
 hit:
-  [SoftClick#settle @420ms +58ms amp=.18 bright=.50 body=.44 pan=.50]
+  [SoftClick#settle @420ms +58ms amp=.18 snap=.50 body=.44 pan=.50]
 
 air:
-  [AirTail#tail @250ms +420ms amp=.065 bright=.44 pan=.50]
+  [AirTail#tail @250ms +420ms amp=.065 air=.44 pan=.50]
 `,
   },
   {
@@ -140,14 +140,14 @@ master gain=.76 drive=.28 reverb=.10 cutoff=13000
 curve drop = exp
 
 bass:
-  [SubDrop#fall @0ms +300ms amp=.22 freq=118->54 curve=drop drive=.48 pan=.50]
-  [BassThump#impact @22ms +170ms amp=.16 freq=66 punch=.78 drive=.46 pan=.50]
+  [SubDrop#fall @0ms +300ms amp=.22 tone=118->54 curve=drop weight=.48 pan=.50]
+  [BassThump#impact @22ms +170ms amp=.16 tone=66 punch=.78 body=.46 pan=.50]
 
 click:
-  [SoftClick#snap @0ms +44ms amp=.18 bright=.52 body=.38 pan=.48]
+  [SoftClick#snap @0ms +44ms amp=.18 snap=.52 body=.38 pan=.48]
 
 noise:
-  [NoiseBurst#dust @70ms +260ms amp=.055 hp=850 lp=6200 pan=.52]
+  [NoiseBurst#dust @70ms +260ms amp=.055 thin=850 air=6200 pan=.52]
 `,
   },
 ];
