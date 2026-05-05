@@ -89,11 +89,15 @@ export type NormalizedClipReader = Clip & {
   ramp: (name: string) => { from: number; to: number; curve: CurveRef };
 };
 
+export type InstrumentCompileContext = {
+  curveCode: (curve: CurveRef) => number;
+};
+
 export type InstrumentSpec = {
   name: string;
   family: "bass" | "click" | "tone" | "noise" | "motion" | "system";
   params: ParamSpec[];
-  compilePfields: (clip: NormalizedClipReader) => number[];
+  compilePfields: (clip: NormalizedClipReader, context: InstrumentCompileContext) => number[];
 };
 
 export type TimeAst = {

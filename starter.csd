@@ -19,6 +19,36 @@ chn_k "master_drive", 3
 chn_k "master_reverb", 3
 chn_k "master_cutoff", 3
 chn_k "js_globals_ready", 3
+chn_k "preview_active", 3
+
+opcode CurveRamp, k, iiii
+  iFrom, iTo, iCurve, iDur xin
+
+  kPos linseg 0, max(0.001, iDur), 1
+
+  if iCurve == 1 then
+    kOut expseg max(0.0001, iFrom), max(0.001, iDur), max(0.0001, iTo)
+  elseif iCurve == 2 then
+    kShape = kPos * kPos
+    kOut = iFrom + ((iTo - iFrom) * kShape)
+  elseif iCurve == 3 then
+    kInv = 1 - kPos
+    kShape = 1 - (kInv * kInv)
+    kOut = iFrom + ((iTo - iFrom) * kShape)
+  elseif iCurve == 4 then
+    if kPos < 0.5 then
+      kShape = 2 * kPos * kPos
+    else
+      kInv = -2 * kPos + 2
+      kShape = 1 - ((kInv * kInv) / 2)
+    endif
+    kOut = iFrom + ((iTo - iFrom) * kShape)
+  else
+    kOut = iFrom + ((iTo - iFrom) * kPos)
+  endif
+
+  xout kOut
+endop
 
 instr InitDefaults
   kReady chnget "js_globals_ready"
@@ -65,16 +95,23 @@ endin
 ; p4 amp
 ; p5 startHz
 ; p6 endHz
-; p7 drive 0..1
-; p8 pan 0..1
+; p7 curve code
+; p8 drive 0..1
+; p9 pan 0..1
 instr SubDrop
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp     = p4
   iStartHz = p5
   iEndHz   = p6
-  iDrive   = p7
-  iPan     = p8
+  iCurve   = p7
+  iDrive   = p8
+  iPan     = p9
 
-  kFreq expseg iStartHz, 0.040, iEndHz, max(0.020, p3 - 0.040), iEndHz * 0.96
+  kFreq CurveRamp iStartHz, iEndHz, iCurve, p3
   aEnv  linseg 0, 0.006, 1, max(0.020, p3 * 0.70), 0.22, max(0.020, p3 * 0.30), 0
 
   aSig poscil iAmp, kFreq, giSine
@@ -95,6 +132,11 @@ endin
 ; p7 drive 0..1
 ; p8 pan 0..1
 instr BassThump
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp   = p4
   iFreq  = p5
   iPunch = p6
@@ -123,6 +165,11 @@ endin
 ; p6 body 0..1
 ; p7 pan 0..1
 instr SoftClick
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp    = p4
   iBright = p5
   iBody   = p6
@@ -150,6 +197,11 @@ endin
 ; p6 lpHz
 ; p7 pan 0..1
 instr NoiseBurst
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp = p4
   iHp  = p5
   iLp  = p6
@@ -171,15 +223,22 @@ endin
 ; p4 amp
 ; p5 startCutoff
 ; p6 endCutoff
-; p7 pan 0..1
+; p7 curve code
+; p8 pan 0..1
 instr Whoosh
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp   = p4
   iStart = p5
   iEnd   = p6
-  iPan   = p7
+  iCurve = p7
+  iPan   = p8
 
   aNoise rand 1
-  kCut expseg max(40, iStart), max(0.010, p3), max(40, iEnd)
+  kCut CurveRamp max(40, iStart), max(40, iEnd), iCurve, p3
 
   aSig buthp aNoise, kCut * 0.45
   aSig butlp aSig, kCut
@@ -198,6 +257,11 @@ endin
 ; p6 brightness 0..1
 ; p7 pan 0..1
 instr GlassPing
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp    = p4
   iFreq   = p5
   iBright = p6
@@ -224,6 +288,11 @@ endin
 ; p6 detune 0..1
 ; p7 pan 0..1
 instr SoftChime
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp    = p4
   iFreq   = p5
   iDetune = p6
@@ -250,6 +319,11 @@ endin
 ; p6 roughness 0..1
 ; p7 pan 0..1
 instr ErrorBuzz
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp   = p4
   iFreq  = p5
   iRough = p6
@@ -277,6 +351,11 @@ endin
 ; p7 depth 0..1
 ; p8 pan 0..1
 instr ComputePulse
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp   = p4
   iFreq  = p5
   iRate  = p6
@@ -306,6 +385,11 @@ endin
 ; p5 brightness 0..1
 ; p6 pan 0..1
 instr AirTail
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp    = p4
   iBright = p5
   iPan    = p6
@@ -328,6 +412,11 @@ endin
 ; p6 sweep 0..1
 ; p7 pan 0..1
 instr ReverseSwell
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp   = p4
   iFreq  = p5
   iSweep = p6
@@ -355,6 +444,11 @@ endin
 ; p6 hardness 0..1
 ; p7 pan 0..1
 instr MetalTick
+  kPreviewActive chnget "preview_active"
+  if kPreviewActive < 0.5 then
+    turnoff
+  endif
+
   iAmp      = p4
   iFreq     = p5
   iHardness = p6
@@ -378,4 +472,10 @@ instr MetalTick
 endin
 
 </CsInstruments>
+<CsScore>
+i "InitDefaults" 0 0.01
+i "Master" 0 604800
+f 0 604800
+e
+</CsScore>
 </CsoundSynthesizer>

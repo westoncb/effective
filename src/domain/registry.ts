@@ -52,10 +52,11 @@ export const instruments = {
       scalar("drive", 0.4, 0, 1),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
-    compilePfields: (clip) => [
+    compilePfields: (clip, context) => [
       clip.scalar("amp"),
       clip.ramp("freq").from,
       clip.ramp("freq").to,
+      context.curveCode(clip.ramp("freq").curve),
       clip.scalar("drive"),
       clip.scalar("pan"),
     ],
@@ -118,10 +119,11 @@ export const instruments = {
       ramp("cutoff", 900, 9000, "exp", 40, 22000, "hz"),
       scalar("pan", 0.5, 0, 1, "pan"),
     ],
-    compilePfields: (clip) => [
+    compilePfields: (clip, context) => [
       clip.scalar("amp"),
       clip.ramp("cutoff").from,
       clip.ramp("cutoff").to,
+      context.curveCode(clip.ramp("cutoff").curve),
       clip.scalar("pan"),
     ],
   },

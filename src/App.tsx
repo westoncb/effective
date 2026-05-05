@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPreviewCsound, previewTimeline, stopPreview, type PreviewCsound } from "./audio/csound";
+import {
+  createPreviewCsound,
+  previewClip,
+  previewTimeline,
+  stopPreview,
+  type PreviewCsound,
+} from "./audio/csound";
 import { duplicateClipLine, nudgeNumberAt, toggleCommentForLine, type TextEdit } from "./editor/textTransforms";
 import { buildProgram, type ProgramResult } from "./domain/program";
 import { instruments } from "./domain/registry";
@@ -29,6 +35,7 @@ air:
 
 type AudioState =
   | { status: "uninitialized" }
+  | { status: "starting" }
   | { status: "ready" }
   | { status: "playing" }
   | { status: "error"; error: string };
@@ -65,25 +72,11 @@ export default function App() {
     [activeTimeline, selection.clipId],
   );
 
-  async function startAudio() {
-    try {
-      setAudio({ status: "ready" });
-      engineRef.current = await createPreviewCsound();
-      setAudio({ status: "ready" });
-    } catch (error) {
-      setAudio({
-        status: "error",
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
   async function preview() {
     if (!activeTimeline) return;
 
     try {
-      const engine = engineRef.current ?? (await createPreviewCsound());
-      engineRef.current = engine;
+      const engine = await getAudioEngine();
       setAudio({ status: "playing" });
       await previewTimeline(engine, activeTimeline);
     } catch (error) {
@@ -92,6 +85,30 @@ export default function App() {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  async function previewSingleClip(clip: Clip) {
+    if (!activeTimeline) return;
+
+    try {
+      const engine = await getAudioEngine();
+      setAudio({ status: "playing" });
+      await previewClip(engine, activeTimeline, clip);
+    } catch (error) {
+      setAudio({
+        status: "error",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  async function getAudioEngine() {
+    if (engineRef.current) return engineRef.current;
+
+    setAudio({ status: "starting" });
+    const engine = await createPreviewCsound(() => setAudio({ status: "ready" }));
+    engineRef.current = engine;
+    return engine;
   }
 
   async function stop() {
@@ -184,12 +201,10 @@ export default function App() {
           <span>Effect</span>
         </div>
         <div className="topbar-actions">
-          {audio.status === "uninitialized" ? (
-            <button className="primary" onClick={startAudio}>Start Audio</button>
-          ) : (
-            <button className="primary" onClick={preview}>Preview</button>
-          )}
-          <button onClick={stop} disabled={!engineRef.current}>Stop</button>
+          <button className="primary" onClick={preview} disabled={audio.status === "starting"}>
+            {audio.status === "starting" ? "Starting..." : "Preview"}
+          </button>
+          <button onClick={stop} disabled={audio.status !== "playing"}>Stop</button>
           <StatusPill label={program.status} tone={program.status === "valid" ? "good" : "bad"} />
           <StatusPill label={audio.status} tone={audio.status === "error" ? "bad" : "neutral"} />
         </div>
@@ -210,14 +225,23 @@ export default function App() {
 
         <section className="timeline-panel" aria-label="Timeline">
           {activeTimeline ? (
-            <TimelineView timeline={activeTimeline} selectedClipId={selection.clipId} onSelectClip={selectClip} />
+            <TimelineView
+              timeline={activeTimeline}
+              selectedClipId={selection.clipId}
+              onSelectClip={selectClip}
+              onAuditionClip={(clip) => void previewSingleClip(clip)}
+            />
           ) : (
             <div className="empty-state">No valid timeline</div>
           )}
         </section>
 
         <aside className="inspector" aria-label="Inspector">
-          <Inspector clip={selectedClip} timeline={activeTimeline} />
+          <Inspector
+            clip={selectedClip}
+            timeline={activeTimeline}
+            onPreviewClip={(clip) => void previewSingleClip(clip)}
+          />
         </aside>
       </section>
 
@@ -252,10 +276,12 @@ function TimelineView({
   timeline,
   selectedClipId,
   onSelectClip,
+  onAuditionClip,
 }: {
   timeline: Timeline;
   selectedClipId?: string;
   onSelectClip: (clip: Clip) => void;
+  onAuditionClip: (clip: Clip) => void;
 }) {
   const scaleMs = Math.max(timeline.durationMs, timeline.effectiveDurationMs - timeline.tailMs);
   const ticks = makeTicks(scaleMs);
@@ -285,6 +311,10 @@ function TimelineView({
                     key={clip.stableId}
                     style={{ left: `${left}%`, width: `${width}%` }}
                     onClick={() => onSelectClip(clip)}
+                    onDoubleClick={() => {
+                      onSelectClip(clip);
+                      onAuditionClip(clip);
+                    }}
                   >
                     <span>{clip.instrument}{clip.id ? `#${clip.id}` : ""}</span>
                     <small>{clip.startMs}ms +{clip.durationMs}ms</small>
@@ -299,7 +329,15 @@ function TimelineView({
   );
 }
 
-function Inspector({ clip, timeline }: { clip?: Clip; timeline?: Timeline }) {
+function Inspector({
+  clip,
+  timeline,
+  onPreviewClip,
+}: {
+  clip?: Clip;
+  timeline?: Timeline;
+  onPreviewClip: (clip: Clip) => void;
+}) {
   if (!clip || !timeline) {
     return (
       <>
@@ -318,6 +356,9 @@ function Inspector({ clip, timeline }: { clip?: Clip; timeline?: Timeline }) {
         <span>{clip.laneId}</span>
         <span>{clip.startMs}ms</span>
         <span>+{clip.durationMs}ms</span>
+      </div>
+      <div className="inspector-actions">
+        <button className="primary" onClick={() => onPreviewClip(clip)}>Preview Clip</button>
       </div>
       <div className="param-list">
         {spec.params.map((param) => (

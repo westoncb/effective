@@ -195,31 +195,47 @@ export function normalizeProgram(ast: ProgramAst): Timeline {
 }
 
 export function compileTimelineToScore(timeline: Omit<Timeline, "score">): string {
-  const hasSolo = timeline.clips.some((clip) => clip.solo);
-  const activeClips = timeline.clips.filter((clip) => !clip.muted && (!hasSolo || clip.solo));
-  const lines = [
+  return [
     'i "InitDefaults" 0 0.01',
     `i "Master" 0 ${seconds(timeline.effectiveDurationMs)}`,
-  ];
+    ...compileTimelineClipEvents(timeline),
+    "e",
+    "",
+  ].join("\n");
+}
 
-  activeClips.forEach((clip) => {
-    if (!isKnownInstrument(clip.instrument)) return;
-    const spec = instruments[clip.instrument];
-    const reader = makeClipReader(clip);
-    const pfields = spec.compilePfields(reader).map(formatNumber);
-    lines.push(
-      [
-        "i",
-        `"${clip.instrument}"`,
-        seconds(clip.startMs),
-        seconds(clip.durationMs),
-        ...pfields,
-      ].join(" "),
-    );
+export function compileTimelineClipEvents(timeline: Omit<Timeline, "score">): string[] {
+  const hasSolo = timeline.clips.some((clip) => clip.solo);
+  const activeClips = timeline.clips.filter((clip) => !clip.muted && (!hasSolo || clip.solo));
+
+  return activeClips.flatMap((clip) => {
+    const event = compileClipEvent(clip, clip.startMs, timeline.curves);
+    return event ? [event] : [];
   });
+}
 
-  lines.push("e");
-  return `${lines.join("\n")}\n`;
+export function compileClipEvent(
+  clip: Clip,
+  startMs = clip.startMs,
+  curves: Record<string, CurveDef> = {},
+): string | undefined {
+  if (!isKnownInstrument(clip.instrument)) return undefined;
+
+  const spec = instruments[clip.instrument];
+  const reader = makeClipReader(clip);
+  const pfields = spec
+    .compilePfields(reader, {
+      curveCode: (curve) => curveCode(curve, curves) ?? 0,
+    })
+    .map(formatNumber);
+
+  return [
+    "i",
+    `"${clip.instrument}"`,
+    seconds(startMs),
+    seconds(clip.durationMs),
+    ...pfields,
+  ].join(" ");
 }
 
 export function curveCode(curve: CurveRef, curves: Record<string, CurveDef> = {}): number | undefined {
